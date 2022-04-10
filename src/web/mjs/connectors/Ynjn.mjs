@@ -12,7 +12,8 @@ export default class Ynjn extends SpeedBinb {
     }
 
     async _getMangaFromURI(uri) {
-		if(uri.href.includes("/viewer/")){//as there is no way for users to get the chapter list without manualy changing the url
+		//the website has no back button so adding this to get the chapter list with a chapter link.
+		if(uri.href.includes("/viewer/")){
 			uri.href = uri.href.split("/viewer")[0];
 		}
         let request = new Request(uri, this.requestOptions);
