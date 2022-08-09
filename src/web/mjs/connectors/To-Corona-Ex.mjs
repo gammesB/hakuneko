@@ -47,18 +47,29 @@ export default class toCoronaEx extends Connector {
             this.requestOptions
         );
         const chapterinfo = await this.fetchJSON(request);
-        return chapterinfo.pages.map((element) => {
-            return this.createConnectorURI(element.page_image_url);
-        });
-    }
-    async _handleConnectorURI(payload) {
-        if (!payload.includes('https://cdn.to-corona-ex.com/pages/images/')) {
-            return super._handleConnectorURI(payload);
+        let drmhash = [];
+        let imagelinks = [];
+        for (let i = 0; i < chapterinfo.pages.length; i++) {
+            drmhash.push(chapterinfo.pages[i].drm_hash);
+            imagelinks.push(this.createConnectorURI(chapterinfo.pages[i].page_image_url));
         }
-        let data = await this.prepareForDescramble(payload);
-        data = await this._blobToBuffer(data);
-        this._applyRealMime(data);
-        return data;
+        return imagelinks;
+    }
+    _handleConnectorURI(payload) {
+        let promise;
+        switch (true) {
+            case payload.includes('https://cdn.to-corona-ex.com/pages/images/'):
+                promise = this.prepareForDescramble(payload);
+                break;
+
+            default:
+                return super._handleConnectorURI(payload);
+        }
+        return promise.then(data => this._blobToBuffer(data))
+            .then(data => {
+                this._applyRealMime(data);
+                return Promise.resolve(data);
+            });
     }
     prepareForDescramble(scrambledImageURL) {
         let uri = new URL(scrambledImageURL);
@@ -72,11 +83,11 @@ export default class toCoronaEx extends Connector {
     descramble(bitmap, key) {
         return new Promise(resolve => {
             var r = function (e) {
-                    for (var t = atob(e), n = [], r = 0; r < t.length; r += 1) {
-                        n[r] = t.charCodeAt(r);
-                    }
-                    return n;
-                }(key),
+                for (var t = atob(e), n = [], r = 0; r < t.length; r += 1) {
+                    n[r] = t.charCodeAt(r);
+                }
+                return n;
+            }(key),
                 i = r[0],
                 o = r[1],
                 a = r.slice(2),
